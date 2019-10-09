@@ -96,13 +96,19 @@ func (rs *RESTServer) wrapRoute(w http.ResponseWriter, r *http.Request, ps httpr
 
 	if err != nil {
 		rs.l.Debugw("error getting schema files from registry", "error", err)
-		conn.WriteJSON(&RESTMessage{Error: &RESTError{Message: "unable to get schema files from registry", Details: err.Error()}})
+		conn.WriteJSON(&RESTMessage{
+			Error:   &RESTError{Message: "unable to get schema files from registry", Details: err.Error()},
+			Message: "error",
+		})
 		return
 	}
 
 	if len(files.Files) == 0 {
 		rs.l.Debugw("no files in the registry", "cluster ", ps.ByName("cluster"), "channel", ps.ByName("channel"))
-		conn.WriteJSON(&RESTMessage{Error: &RESTError{Message: "no files in registry", Details: fmt.Sprintf("cluster: %s, channel: %s", ps.ByName("cluster"), ps.ByName("channel"))}})
+		conn.WriteJSON(&RESTMessage{
+			Error:   &RESTError{Message: "no files in registry", Details: fmt.Sprintf("cluster: %s, channel: %s", ps.ByName("cluster"), ps.ByName("channel"))},
+			Message: "error",
+		})
 		return
 	}
 
@@ -114,13 +120,19 @@ func (rs *RESTServer) wrapRoute(w http.ResponseWriter, r *http.Request, ps httpr
 
 	if err != nil {
 		rs.l.Debugw("error getting channel message from registry", "error", err)
-		conn.WriteJSON(&RESTMessage{Error: &RESTError{Message: "unable to get channgel message from registry", Details: err.Error()}})
+		conn.WriteJSON(&RESTMessage{
+			Error:   &RESTError{Message: "unable to get channgel message from registry", Details: err.Error()},
+			Message: "error",
+		})
 		return
 	}
 
 	if len(msg.Name) == 0 {
 		rs.l.Debugw("no message type set for channel", "cluster ", ps.ByName("cluster"), "channel", ps.ByName("channel"))
-		conn.WriteJSON(&RESTMessage{Error: &RESTError{Message: "no message type set for channel", Details: fmt.Sprintf("cluster: %s, channel: %s", ps.ByName("cluster"), ps.ByName("channel"))}})
+		conn.WriteJSON(&RESTMessage{
+			Error:   &RESTError{Message: "no message type set for channel", Details: fmt.Sprintf("cluster: %s, channel: %s", ps.ByName("cluster"), ps.ByName("channel"))},
+			Message: "error",
+		})
 		return
 	}
 
@@ -158,7 +170,10 @@ func (rs *RESTServer) wrapRoute(w http.ResponseWriter, r *http.Request, ps httpr
 	_, err = registry.Resolve(msgPath)
 	if err != nil {
 		rs.l.Debugw("error resolving message type from registry", "error", err)
-		conn.WriteJSON(&RESTMessage{Error: &RESTError{Message: "error resolving message type from registry", Details: err.Error()}})
+		conn.WriteJSON(&RESTMessage{
+			Error:   &RESTError{Message: "error resolving message type from registry", Details: err.Error()},
+			Message: "error",
+		})
 		return
 	}
 
@@ -186,14 +201,29 @@ func (rs *RESTServer) wrapRoute(w http.ResponseWriter, r *http.Request, ps httpr
 
 	}, stan.MaxInflight(1))
 
+	// unsub
+	defer sc.Close()
+
 	// handle a client disconnect
 	closeChan := make(chan struct{})
-	conn.SetCloseHandler(func(code int, text string) error {
-		defer close(closeChan)
-		message := websocket.FormatCloseMessage(code, "")
-		conn.WriteControl(websocket.CloseMessage, message, time.Now().Add(1*time.Second))
-		return nil
-	})
+	// conn.SetCloseHandler(func(code int, text string) error {
+	// 	message := websocket.FormatCloseMessage(code, "")
+	// 	conn.WriteControl(websocket.CloseMessage, message, time.Now().Add(1*time.Second))
+	// 	return nil
+	// })
+
+	// MUST read the incoming messages - the above handler is called via the NextReader() function
+	go func(c *websocket.Conn) {
+		for {
+			if _, _, err := c.NextReader(); err != nil {
+				// gorilla treats close messages from the server as read errors.
+				defer close(closeChan)
+				// preserve the error, if there was indeed one...
+				rs.l.Debugw("error reading incoming message", "error", err.Error())
+				break
+			}
+		}
+	}(conn)
 
 	// wait until the connection is closed or we are told to stop
 	select {
@@ -201,11 +231,8 @@ func (rs *RESTServer) wrapRoute(w http.ResponseWriter, r *http.Request, ps httpr
 		rs.l.Debug("client disconnected closed")
 	case <-rs.finish:
 		rs.l.Debug("that's a wrap")
-		conn.Close()
 	}
 
-	// unsub
-	sc.Close()
 }
 
 func (rs *RESTServer) Stop() error {
