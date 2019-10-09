@@ -206,11 +206,6 @@ func (rs *RESTServer) wrapRoute(w http.ResponseWriter, r *http.Request, ps httpr
 
 	// handle a client disconnect
 	closeChan := make(chan struct{})
-	// conn.SetCloseHandler(func(code int, text string) error {
-	// 	message := websocket.FormatCloseMessage(code, "")
-	// 	conn.WriteControl(websocket.CloseMessage, message, time.Now().Add(1*time.Second))
-	// 	return nil
-	// })
 
 	// MUST read the incoming messages - the above handler is called via the NextReader() function
 	go func(c *websocket.Conn) {
