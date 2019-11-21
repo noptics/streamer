@@ -23,6 +23,8 @@ func main() {
 	l.Init()
 	defer l.Finish()
 
+	c := newContext()
+
 	l.Info("starting server")
 
 	// Connect to the registry
@@ -89,7 +91,7 @@ func main() {
 		rsport = "7786"
 	}
 
-	rs := NewRestServer(rc, sc, rsport, errChan, l)
+	rs := NewRestServer(rc, sc, rsport, errChan, l, c)
 	l.Info("started")
 
 	// go until told to stop

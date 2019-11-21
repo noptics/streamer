@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"sync"
@@ -20,6 +21,7 @@ import (
 
 const usage = `{"message":"path not found","usage":[{"description":"watch messages for a particular channel","path":"/:cluster/:channel","method":"GET","example":"GET /nats1/payoutRequests","response":{"cluster":"nats1","channel":"payoutRequests","files":[{"name":"request.proto","data":"<base64 encoded file data>"}]}}]}`
 
+// Wraps the routes and handlers
 type RESTServer struct {
 	rc      registrygrpc.ProtoRegistryClient
 	sc      stan.Conn
@@ -28,20 +30,24 @@ type RESTServer struct {
 	finish  chan struct{}
 	wg      *sync.WaitGroup
 	hs      http.Server
+	context *Context
 }
 
+// RESTError is the standard structure for rest api errors
 type RESTError struct {
 	Message     string `json:"message"`
 	Description string `json:"description,omitempty"`
 	Details     string `json:"details"`
 }
 
+// RESTMessage is the message streaming reply structure
 type RESTMessage struct {
 	Error    *RESTError  `json:"error,omitempty"`
 	NatsMeta *NATSMeta   `json:"natsMeta,omitempty"`
 	Message  interface{} `json:"message"`
 }
 
+// Metadata about the nats message
 type NATSMeta struct {
 	Sequence  uint64    `json:"sequence"`
 	Timestamp time.Time `json:"timestamp"`
@@ -53,7 +59,7 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
-func NewRestServer(rc registrygrpc.ProtoRegistryClient, sc stan.Conn, port string, errChan chan error, l golog.Logger) *RESTServer {
+func NewRestServer(rc registrygrpc.ProtoRegistryClient, sc stan.Conn, port string, errChan chan error, l golog.Logger, context *Context) *RESTServer {
 	rs := &RESTServer{
 		rc:      rc,
 		sc:      sc,
@@ -61,6 +67,7 @@ func NewRestServer(rc registrygrpc.ProtoRegistryClient, sc stan.Conn, port strin
 		finish:  make(chan struct{}),
 		wg:      &sync.WaitGroup{},
 		errChan: errChan,
+		context: context,
 	}
 
 	rs.hs = http.Server{Addr: ":" + port, Handler: rs.Router()}
@@ -75,7 +82,7 @@ func NewRestServer(rc registrygrpc.ProtoRegistryClient, sc stan.Conn, port strin
 	return rs
 }
 
-func (rs *RESTServer) wrapRoute(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func (rs *RESTServer) WebSocket(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	rs.wg.Add(1)
 	defer rs.wg.Done()
 	conn, err := upgrader.Upgrade(w, r, nil)
@@ -201,6 +208,11 @@ func (rs *RESTServer) wrapRoute(w http.ResponseWriter, r *http.Request, ps httpr
 
 	}, stan.MaxInflight(1))
 
+	if err != nil {
+		rs.l.Errorw("unable to setup stan subscription", "error", err)
+		return
+	}
+
 	// unsub
 	defer sc.Close()
 
@@ -227,7 +239,42 @@ func (rs *RESTServer) wrapRoute(w http.ResponseWriter, r *http.Request, ps httpr
 	case <-rs.finish:
 		rs.l.Debug("that's a wrap")
 	}
+}
 
+func (rs *RESTServer) ServerStatus(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	type RESTStatusData struct {
+		Context
+	}
+
+	code := 200
+	body, err := json.Marshal(&RESTStatusData{*rs.context})
+	if err != nil {
+		body = []byte(fmt.Sprintf(`{"message": "error marshalling response", "description":"unable to json encode data", "details":"%s"`, err.Error()))
+		code = 500
+	}
+
+	setHeaders(w, r.Header)
+	w.WriteHeader(code)
+	if len(body) != 0 {
+		w.Write(body)
+	}
+}
+
+func setHeaders(w http.ResponseWriter, rh http.Header) {
+	allowMethod := "GET, POST, PUT, DELETE, OPTIONS"
+	allowHeaders := "Content-Type"
+	w.Header().Set("Cache-Control", "must-revalidate")
+	w.Header().Set("Allow", allowMethod)
+	w.Header().Set("Access-Control-Allow-Methods", allowMethod)
+	w.Header().Set("Access-Control-Allow-Headers", allowHeaders)
+
+	o := rh.Get("Origin")
+	if o == "" {
+		o = "*"
+	}
+	w.Header().Set("Access-Control-Allow-Origin", o)
+	w.Header().Set("Access-Control-Allow-Credentials", "true")
+	w.Header().Set("Content-Type", "application/json")
 }
 
 func (rs *RESTServer) Stop() error {
@@ -242,7 +289,15 @@ func (rs *RESTServer) Stop() error {
 
 func (rs *RESTServer) Router() *httprouter.Router {
 	r := httprouter.New()
-	r.GET("/:cluster/:channel", rs.wrapRoute)
+
+	r.HandleOPTIONS = true
+	r.GlobalOPTIONS = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		setHeaders(w, r.Header)
+		w.WriteHeader(http.StatusNoContent)
+	})
+
+	r.GET("/:cluster/:channel", rs.WebSocket)
+	r.GET("/", rs.ServerStatus)
 
 	r.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Add("Content-Type", "application/json")

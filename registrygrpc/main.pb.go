@@ -413,6 +413,210 @@ func (m *GetMessageReply) GetName() string {
 	return ""
 }
 
+type GetChannelDataRequest struct {
+	Cluster              string   `protobuf:"bytes,1,opt,name=cluster,proto3" json:"cluster,omitempty"`
+	Channel              string   `protobuf:"bytes,2,opt,name=channel,proto3" json:"channel,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetChannelDataRequest) Reset()         { *m = GetChannelDataRequest{} }
+func (m *GetChannelDataRequest) String() string { return proto.CompactTextString(m) }
+func (*GetChannelDataRequest) ProtoMessage()    {}
+func (*GetChannelDataRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7ed94b0a22d11796, []int{9}
+}
+
+func (m *GetChannelDataRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetChannelDataRequest.Unmarshal(m, b)
+}
+func (m *GetChannelDataRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetChannelDataRequest.Marshal(b, m, deterministic)
+}
+func (m *GetChannelDataRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetChannelDataRequest.Merge(m, src)
+}
+func (m *GetChannelDataRequest) XXX_Size() int {
+	return xxx_messageInfo_GetChannelDataRequest.Size(m)
+}
+func (m *GetChannelDataRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetChannelDataRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetChannelDataRequest proto.InternalMessageInfo
+
+func (m *GetChannelDataRequest) GetCluster() string {
+	if m != nil {
+		return m.Cluster
+	}
+	return ""
+}
+
+func (m *GetChannelDataRequest) GetChannel() string {
+	if m != nil {
+		return m.Channel
+	}
+	return ""
+}
+
+type GetChannelDataReply struct {
+	Cluster              string   `protobuf:"bytes,1,opt,name=cluster,proto3" json:"cluster,omitempty"`
+	Channel              string   `protobuf:"bytes,3,opt,name=channel,proto3" json:"channel,omitempty"`
+	Message              string   `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	Files                []*File  `protobuf:"bytes,5,rep,name=files,proto3" json:"files,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *GetChannelDataReply) Reset()         { *m = GetChannelDataReply{} }
+func (m *GetChannelDataReply) String() string { return proto.CompactTextString(m) }
+func (*GetChannelDataReply) ProtoMessage()    {}
+func (*GetChannelDataReply) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7ed94b0a22d11796, []int{10}
+}
+
+func (m *GetChannelDataReply) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_GetChannelDataReply.Unmarshal(m, b)
+}
+func (m *GetChannelDataReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_GetChannelDataReply.Marshal(b, m, deterministic)
+}
+func (m *GetChannelDataReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_GetChannelDataReply.Merge(m, src)
+}
+func (m *GetChannelDataReply) XXX_Size() int {
+	return xxx_messageInfo_GetChannelDataReply.Size(m)
+}
+func (m *GetChannelDataReply) XXX_DiscardUnknown() {
+	xxx_messageInfo_GetChannelDataReply.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_GetChannelDataReply proto.InternalMessageInfo
+
+func (m *GetChannelDataReply) GetCluster() string {
+	if m != nil {
+		return m.Cluster
+	}
+	return ""
+}
+
+func (m *GetChannelDataReply) GetChannel() string {
+	if m != nil {
+		return m.Channel
+	}
+	return ""
+}
+
+func (m *GetChannelDataReply) GetMessage() string {
+	if m != nil {
+		return m.Message
+	}
+	return ""
+}
+
+func (m *GetChannelDataReply) GetFiles() []*File {
+	if m != nil {
+		return m.Files
+	}
+	return nil
+}
+
+type SetChannelDataRequest struct {
+	Cluster              string   `protobuf:"bytes,1,opt,name=cluster,proto3" json:"cluster,omitempty"`
+	Channel              string   `protobuf:"bytes,3,opt,name=channel,proto3" json:"channel,omitempty"`
+	Message              string   `protobuf:"bytes,4,opt,name=message,proto3" json:"message,omitempty"`
+	Files                []*File  `protobuf:"bytes,5,rep,name=files,proto3" json:"files,omitempty"`
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetChannelDataRequest) Reset()         { *m = SetChannelDataRequest{} }
+func (m *SetChannelDataRequest) String() string { return proto.CompactTextString(m) }
+func (*SetChannelDataRequest) ProtoMessage()    {}
+func (*SetChannelDataRequest) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7ed94b0a22d11796, []int{11}
+}
+
+func (m *SetChannelDataRequest) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetChannelDataRequest.Unmarshal(m, b)
+}
+func (m *SetChannelDataRequest) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetChannelDataRequest.Marshal(b, m, deterministic)
+}
+func (m *SetChannelDataRequest) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetChannelDataRequest.Merge(m, src)
+}
+func (m *SetChannelDataRequest) XXX_Size() int {
+	return xxx_messageInfo_SetChannelDataRequest.Size(m)
+}
+func (m *SetChannelDataRequest) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetChannelDataRequest.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetChannelDataRequest proto.InternalMessageInfo
+
+func (m *SetChannelDataRequest) GetCluster() string {
+	if m != nil {
+		return m.Cluster
+	}
+	return ""
+}
+
+func (m *SetChannelDataRequest) GetChannel() string {
+	if m != nil {
+		return m.Channel
+	}
+	return ""
+}
+
+func (m *SetChannelDataRequest) GetMessage() string {
+	if m != nil {
+		return m.Message
+	}
+	return ""
+}
+
+func (m *SetChannelDataRequest) GetFiles() []*File {
+	if m != nil {
+		return m.Files
+	}
+	return nil
+}
+
+type SetChannelDataReply struct {
+	XXX_NoUnkeyedLiteral struct{} `json:"-"`
+	XXX_unrecognized     []byte   `json:"-"`
+	XXX_sizecache        int32    `json:"-"`
+}
+
+func (m *SetChannelDataReply) Reset()         { *m = SetChannelDataReply{} }
+func (m *SetChannelDataReply) String() string { return proto.CompactTextString(m) }
+func (*SetChannelDataReply) ProtoMessage()    {}
+func (*SetChannelDataReply) Descriptor() ([]byte, []int) {
+	return fileDescriptor_7ed94b0a22d11796, []int{12}
+}
+
+func (m *SetChannelDataReply) XXX_Unmarshal(b []byte) error {
+	return xxx_messageInfo_SetChannelDataReply.Unmarshal(m, b)
+}
+func (m *SetChannelDataReply) XXX_Marshal(b []byte, deterministic bool) ([]byte, error) {
+	return xxx_messageInfo_SetChannelDataReply.Marshal(b, m, deterministic)
+}
+func (m *SetChannelDataReply) XXX_Merge(src proto.Message) {
+	xxx_messageInfo_SetChannelDataReply.Merge(m, src)
+}
+func (m *SetChannelDataReply) XXX_Size() int {
+	return xxx_messageInfo_SetChannelDataReply.Size(m)
+}
+func (m *SetChannelDataReply) XXX_DiscardUnknown() {
+	xxx_messageInfo_SetChannelDataReply.DiscardUnknown(m)
+}
+
+var xxx_messageInfo_SetChannelDataReply proto.InternalMessageInfo
+
 func init() {
 	proto.RegisterType((*File)(nil), "registrygrpc.File")
 	proto.RegisterType((*SaveFilesRequest)(nil), "registrygrpc.SaveFilesRequest")
@@ -423,33 +627,42 @@ func init() {
 	proto.RegisterType((*SetMessageReply)(nil), "registrygrpc.SetMessageReply")
 	proto.RegisterType((*GetMessageRequest)(nil), "registrygrpc.GetMessageRequest")
 	proto.RegisterType((*GetMessageReply)(nil), "registrygrpc.GetMessageReply")
+	proto.RegisterType((*GetChannelDataRequest)(nil), "registrygrpc.GetChannelDataRequest")
+	proto.RegisterType((*GetChannelDataReply)(nil), "registrygrpc.GetChannelDataReply")
+	proto.RegisterType((*SetChannelDataRequest)(nil), "registrygrpc.SetChannelDataRequest")
+	proto.RegisterType((*SetChannelDataReply)(nil), "registrygrpc.SetChannelDataReply")
 }
 
 func init() { proto.RegisterFile("main.proto", fileDescriptor_7ed94b0a22d11796) }
 
 var fileDescriptor_7ed94b0a22d11796 = []byte{
-	// 323 bytes of a gzipped FileDescriptorProto
-	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xac, 0x93, 0xcd, 0x4e, 0xeb, 0x30,
-	0x10, 0x46, 0x6f, 0x9a, 0x5e, 0xa0, 0x43, 0x4b, 0xdb, 0x59, 0x45, 0x85, 0x42, 0x64, 0x09, 0x29,
-	0xab, 0x2c, 0xca, 0x8a, 0x07, 0x00, 0x23, 0x21, 0x10, 0x4a, 0x97, 0xac, 0x4c, 0x19, 0x42, 0xa4,
-	0x34, 0x0d, 0xb1, 0x8b, 0x94, 0x17, 0xe4, 0xb9, 0x90, 0xdd, 0xe6, 0xa7, 0x91, 0xa2, 0x2e, 0xca,
-	0xce, 0x8e, 0xc7, 0x67, 0x3e, 0x1f, 0x3b, 0x00, 0x4b, 0x11, 0x25, 0x7e, 0x9a, 0xad, 0xd4, 0x0a,
-	0xfb, 0x19, 0x85, 0x91, 0x54, 0x59, 0x1e, 0x66, 0xe9, 0x82, 0xf9, 0xd0, 0xbd, 0x8f, 0x62, 0x42,
-	0x84, 0x6e, 0x22, 0x96, 0xe4, 0x74, 0x5c, 0xcb, 0xeb, 0x05, 0x66, 0xac, 0xbf, 0xbd, 0x0b, 0x25,
-	0x1c, 0xdb, 0xb5, 0xbc, 0x7e, 0x60, 0xc6, 0x2c, 0x85, 0xd1, 0x5c, 0x7c, 0x93, 0xde, 0x23, 0x03,
-	0xfa, 0x5a, 0x93, 0x54, 0xe8, 0xc0, 0xf1, 0x22, 0x5e, 0x4b, 0x45, 0x99, 0x63, 0x99, 0xed, 0xc5,
-	0xd4, 0xac, 0x7c, 0x8a, 0x24, 0xa1, 0x78, 0x0b, 0x2e, 0xa6, 0xe8, 0xc1, 0xff, 0x0f, 0xcd, 0x70,
-	0x6c, 0xd7, 0xf6, 0x4e, 0x67, 0xe8, 0xd7, 0x53, 0xf9, 0x1a, 0x1f, 0x6c, 0x0a, 0xd8, 0x08, 0xce,
-	0x6a, 0x1d, 0xd3, 0x38, 0x67, 0x77, 0x30, 0xe4, 0xa4, 0x0e, 0x8d, 0xc0, 0x6e, 0x61, 0x50, 0x61,
-	0xd2, 0x38, 0xaf, 0x32, 0x59, 0xfb, 0x32, 0xbd, 0xc2, 0x78, 0x4e, 0xea, 0x89, 0xa4, 0x14, 0x21,
-	0x1d, 0xa2, 0xa1, 0xd0, 0x6e, 0x57, 0xda, 0xd9, 0x18, 0x86, 0x75, 0xb8, 0x3e, 0x31, 0x87, 0x31,
-	0xff, 0x8b, 0x7e, 0xec, 0xda, 0xa8, 0xab, 0xb3, 0xcb, 0x08, 0x56, 0x15, 0x61, 0xf6, 0xd3, 0x81,
-	0xc1, 0x8b, 0x7e, 0x2d, 0xc1, 0xd6, 0x00, 0x3e, 0x42, 0xaf, 0xbc, 0x05, 0xbc, 0xdc, 0x35, 0xd3,
-	0x7c, 0x10, 0x93, 0x8b, 0xd6, 0x75, 0x7d, 0x98, 0x7f, 0xf8, 0x00, 0x27, 0x85, 0x79, 0x9c, 0xee,
-	0xd6, 0x36, 0x2e, 0x76, 0x72, 0xde, 0xb6, 0xbc, 0x21, 0x3d, 0x03, 0x54, 0xae, 0xf0, 0xaa, 0xd1,
-	0xb7, 0xa9, 0x6c, 0x32, 0x6d, 0x2f, 0x28, 0x79, 0xbc, 0x95, 0xc7, 0xf7, 0xf1, 0x78, 0x93, 0xf7,
-	0x76, 0x64, 0xfe, 0xb9, 0x9b, 0xdf, 0x00, 0x00, 0x00, 0xff, 0xff, 0xb5, 0x72, 0x30, 0x40, 0x81,
-	0x03, 0x00, 0x00,
+	// 409 bytes of a gzipped FileDescriptorProto
+	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xb4, 0x94, 0x4d, 0x4f, 0xf2, 0x40,
+	0x10, 0xc7, 0x9f, 0x3e, 0x85, 0x87, 0x87, 0x91, 0xd7, 0x25, 0x24, 0x4d, 0x15, 0xc5, 0x1a, 0x93,
+	0x9e, 0x7a, 0xc0, 0x93, 0x67, 0x5f, 0xd6, 0x84, 0x68, 0x4c, 0xf7, 0xa6, 0xa7, 0x15, 0x57, 0x24,
+	0x29, 0xa5, 0xb6, 0x8b, 0x09, 0x1f, 0xc2, 0xf8, 0x8d, 0x8d, 0xd9, 0x96, 0xbe, 0x5b, 0x20, 0xa2,
+	0xb7, 0x9d, 0xce, 0xcc, 0x6f, 0xfe, 0x3b, 0x3b, 0x53, 0x80, 0x29, 0x9d, 0xd8, 0x86, 0xe3, 0xce,
+	0xf8, 0x0c, 0xd5, 0x5c, 0x36, 0x9e, 0x78, 0xdc, 0x5d, 0x8c, 0x5d, 0x67, 0xa4, 0x19, 0x50, 0xba,
+	0x9c, 0x58, 0x0c, 0x21, 0x28, 0xd9, 0x74, 0xca, 0x94, 0xbf, 0x7d, 0x49, 0xaf, 0x9a, 0xfe, 0x59,
+	0x7c, 0x7b, 0xa4, 0x9c, 0x2a, 0x72, 0x5f, 0xd2, 0x6b, 0xa6, 0x7f, 0xd6, 0x1c, 0x68, 0x11, 0xfa,
+	0xca, 0x44, 0x8e, 0x67, 0xb2, 0x97, 0x39, 0xf3, 0x38, 0x52, 0xa0, 0x32, 0xb2, 0xe6, 0x1e, 0x67,
+	0xae, 0x22, 0xf9, 0xe9, 0xa1, 0xe9, 0x7b, 0x9e, 0xa9, 0x6d, 0x33, 0x6b, 0x09, 0x0e, 0x4d, 0xa4,
+	0x43, 0xf9, 0x49, 0x30, 0x14, 0xb9, 0x2f, 0xeb, 0x3b, 0x03, 0x64, 0x24, 0x55, 0x19, 0x02, 0x6f,
+	0x06, 0x01, 0x5a, 0x0b, 0x1a, 0x89, 0x8a, 0x8e, 0xb5, 0xd0, 0x2e, 0xa0, 0x89, 0x19, 0xdf, 0x56,
+	0x82, 0x76, 0x0a, 0xf5, 0x18, 0xe3, 0x58, 0x8b, 0x58, 0x93, 0xb4, 0x4e, 0xd3, 0x3d, 0xb4, 0x09,
+	0xe3, 0xd7, 0xcc, 0xf3, 0xe8, 0x98, 0x6d, 0xd3, 0x86, 0xb0, 0xed, 0x72, 0xdc, 0x76, 0xad, 0x0d,
+	0xcd, 0x24, 0x5c, 0xdc, 0x18, 0x43, 0x1b, 0xff, 0x44, 0x3d, 0xed, 0xd8, 0x6f, 0x5d, 0x92, 0x1d,
+	0x49, 0x90, 0x12, 0x12, 0x86, 0xd0, 0xc5, 0x8c, 0x9f, 0x05, 0x49, 0xe7, 0x94, 0xd3, 0x6d, 0x6a,
+	0xbe, 0x49, 0xd0, 0xc9, 0xd2, 0x44, 0xe1, 0x8d, 0x58, 0x72, 0xba, 0x5f, 0x0a, 0x54, 0xa6, 0x81,
+	0x78, 0xa5, 0x14, 0x78, 0x96, 0x66, 0xfc, 0x78, 0xe5, 0x75, 0x8f, 0xf7, 0x2e, 0x41, 0x97, 0x7c,
+	0xff, 0x76, 0xbf, 0xa0, 0xa8, 0x0b, 0x1d, 0x92, 0x6f, 0xd0, 0xe0, 0x43, 0x86, 0xfa, 0xad, 0xd8,
+	0x59, 0x73, 0x99, 0x88, 0x86, 0x50, 0x8d, 0x76, 0x01, 0xed, 0xa7, 0x81, 0xd9, 0xb5, 0x54, 0xf7,
+	0x0a, 0xfd, 0x62, 0xa4, 0xfe, 0xa0, 0x2b, 0xf8, 0x1f, 0xce, 0x3f, 0xea, 0xa5, 0x63, 0x33, 0xeb,
+	0xa5, 0xee, 0x16, 0xb9, 0x03, 0xd2, 0x0d, 0x40, 0x3c, 0xb1, 0xe8, 0x20, 0x53, 0x37, 0x3b, 0xb8,
+	0x6a, 0xaf, 0x38, 0x20, 0xe2, 0xe1, 0x42, 0x1e, 0x5e, 0xc7, 0xc3, 0x39, 0xde, 0x1d, 0x34, 0xd2,
+	0x03, 0x88, 0x8e, 0x72, 0x29, 0xf9, 0x71, 0x50, 0x0f, 0x57, 0x07, 0x45, 0x6c, 0xb2, 0x92, 0x4d,
+	0x36, 0x61, 0x93, 0xaf, 0xd8, 0x0f, 0xff, 0xfc, 0x3f, 0xf6, 0xc9, 0x67, 0x00, 0x00, 0x00, 0xff,
+	0xff, 0x43, 0x21, 0x82, 0x1a, 0xbf, 0x05, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -468,6 +681,8 @@ type ProtoRegistryClient interface {
 	GetFiles(ctx context.Context, in *GetFilesRequest, opts ...grpc.CallOption) (*GetFilesReply, error)
 	SetMessage(ctx context.Context, in *SetMessageRequest, opts ...grpc.CallOption) (*SetMessageReply, error)
 	GetMessage(ctx context.Context, in *GetMessageRequest, opts ...grpc.CallOption) (*GetMessageReply, error)
+	GetChannelData(ctx context.Context, in *GetChannelDataRequest, opts ...grpc.CallOption) (*GetChannelDataReply, error)
+	SetChannelData(ctx context.Context, in *SetChannelDataRequest, opts ...grpc.CallOption) (*SetChannelDataReply, error)
 }
 
 type protoRegistryClient struct {
@@ -514,12 +729,32 @@ func (c *protoRegistryClient) GetMessage(ctx context.Context, in *GetMessageRequ
 	return out, nil
 }
 
+func (c *protoRegistryClient) GetChannelData(ctx context.Context, in *GetChannelDataRequest, opts ...grpc.CallOption) (*GetChannelDataReply, error) {
+	out := new(GetChannelDataReply)
+	err := c.cc.Invoke(ctx, "/registrygrpc.ProtoRegistry/GetChannelData", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
+func (c *protoRegistryClient) SetChannelData(ctx context.Context, in *SetChannelDataRequest, opts ...grpc.CallOption) (*SetChannelDataReply, error) {
+	out := new(SetChannelDataReply)
+	err := c.cc.Invoke(ctx, "/registrygrpc.ProtoRegistry/SetChannelData", in, out, opts...)
+	if err != nil {
+		return nil, err
+	}
+	return out, nil
+}
+
 // ProtoRegistryServer is the server API for ProtoRegistry service.
 type ProtoRegistryServer interface {
 	SaveFiles(context.Context, *SaveFilesRequest) (*SaveFilesReply, error)
 	GetFiles(context.Context, *GetFilesRequest) (*GetFilesReply, error)
 	SetMessage(context.Context, *SetMessageRequest) (*SetMessageReply, error)
 	GetMessage(context.Context, *GetMessageRequest) (*GetMessageReply, error)
+	GetChannelData(context.Context, *GetChannelDataRequest) (*GetChannelDataReply, error)
+	SetChannelData(context.Context, *SetChannelDataRequest) (*SetChannelDataReply, error)
 }
 
 func RegisterProtoRegistryServer(s *grpc.Server, srv ProtoRegistryServer) {
@@ -598,6 +833,42 @@ func _ProtoRegistry_GetMessage_Handler(srv interface{}, ctx context.Context, dec
 	return interceptor(ctx, in, info, handler)
 }
 
+func _ProtoRegistry_GetChannelData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(GetChannelDataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProtoRegistryServer).GetChannelData(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/registrygrpc.ProtoRegistry/GetChannelData",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProtoRegistryServer).GetChannelData(ctx, req.(*GetChannelDataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
+func _ProtoRegistry_SetChannelData_Handler(srv interface{}, ctx context.Context, dec func(interface{}) error, interceptor grpc.UnaryServerInterceptor) (interface{}, error) {
+	in := new(SetChannelDataRequest)
+	if err := dec(in); err != nil {
+		return nil, err
+	}
+	if interceptor == nil {
+		return srv.(ProtoRegistryServer).SetChannelData(ctx, in)
+	}
+	info := &grpc.UnaryServerInfo{
+		Server:     srv,
+		FullMethod: "/registrygrpc.ProtoRegistry/SetChannelData",
+	}
+	handler := func(ctx context.Context, req interface{}) (interface{}, error) {
+		return srv.(ProtoRegistryServer).SetChannelData(ctx, req.(*SetChannelDataRequest))
+	}
+	return interceptor(ctx, in, info, handler)
+}
+
 var _ProtoRegistry_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "registrygrpc.ProtoRegistry",
 	HandlerType: (*ProtoRegistryServer)(nil),
@@ -617,6 +888,14 @@ var _ProtoRegistry_serviceDesc = grpc.ServiceDesc{
 		{
 			MethodName: "GetMessage",
 			Handler:    _ProtoRegistry_GetMessage_Handler,
+		},
+		{
+			MethodName: "GetChannelData",
+			Handler:    _ProtoRegistry_GetChannelData_Handler,
+		},
+		{
+			MethodName: "SetChannelData",
+			Handler:    _ProtoRegistry_SetChannelData_Handler,
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
