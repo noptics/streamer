@@ -13,6 +13,8 @@ import (
 	"github.com/jhump/protoreflect/desc/protoparse"
 	"github.com/jhump/protoreflect/dynamic/msgregistry"
 	"github.com/julienschmidt/httprouter"
+	"github.com/lithammer/shortuuid"
+	nats "github.com/nats-io/nats.go"
 	stan "github.com/nats-io/stan.go"
 	"github.com/noptics/golog"
 	"github.com/noptics/protofiles"
@@ -21,10 +23,16 @@ import (
 
 const usage = `{"message":"path not found","usage":[{"description":"watch messages for a particular channel","path":"/:cluster/:channel","method":"GET","example":"GET /nats1/payoutRequests","response":{"cluster":"nats1","channel":"payoutRequests","files":[{"name":"request.proto","data":"<base64 encoded file data>"}]}}]}`
 
+// Wraps a connection to the stan cluster
+type stanConnection struct {
+	natsConnection *nats.Conn
+	stanConnection stan.Conn
+	stanClientID   string
+}
+
 // Wraps the routes and handlers
 type RESTServer struct {
 	rc      registrygrpc.ProtoRegistryClient
-	sc      stan.Conn
 	l       golog.Logger
 	errChan chan error
 	finish  chan struct{}
@@ -59,10 +67,9 @@ var upgrader = websocket.Upgrader{
 	CheckOrigin:     func(r *http.Request) bool { return true },
 }
 
-func NewRestServer(rc registrygrpc.ProtoRegistryClient, sc stan.Conn, port string, errChan chan error, l golog.Logger, context *Context) *RESTServer {
+func NewRestServer(rc registrygrpc.ProtoRegistryClient, port string, errChan chan error, l golog.Logger, context *Context) *RESTServer {
 	rs := &RESTServer{
 		rc:      rc,
-		sc:      sc,
 		l:       l,
 		finish:  make(chan struct{}),
 		wg:      &sync.WaitGroup{},
@@ -85,6 +92,17 @@ func NewRestServer(rc registrygrpc.ProtoRegistryClient, sc stan.Conn, port strin
 func (rs *RESTServer) WebSocket(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	rs.wg.Add(1)
 	defer rs.wg.Done()
+
+	natsAddress := r.URL.Query().Get("natsAddress")
+	stanCluster := r.URL.Query().Get(("stanCluster"))
+
+	if len(natsAddress) == 0 && len(stanCluster) == 0 {
+		rs.l.Errorw("error invalid parameters provided", "natsAddress", natsAddress, "stanCluster", stanCluster)
+		return
+	}
+
+	rs.l.Debugw("query params", "natsAddress", natsAddress, "stanCluster", stanCluster)
+
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
 		rs.l.Errorw("error handling websocket connection", "error", err.Error())
@@ -184,8 +202,21 @@ func (rs *RESTServer) WebSocket(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
+	sc, err := connectToStan(natsAddress, stanCluster, rs.context)
+	if err != nil {
+		rs.l.Debugw("error connecting to stan cluster", "error", err)
+		conn.WriteJSON(&RESTMessage{
+			Error:   &RESTError{Message: "error connecting to stan cluster", Details: err.Error()},
+			Message: "error",
+		})
+		return
+	}
+
+	defer sc.natsConnection.Close()
+	defer sc.stanConnection.Close()
+
 	// setup the nats subscription
-	sc, err := rs.sc.Subscribe(ps.ByName("channel"), func(m *stan.Msg) {
+	sub, err := sc.stanConnection.Subscribe(ps.ByName("channel"), func(m *stan.Msg) {
 		rm := RESTMessage{NatsMeta: &NATSMeta{
 			Sequence:  m.MsgProto.Sequence,
 			Timestamp: time.Unix(0, m.Timestamp),
@@ -204,7 +235,9 @@ func (rs *RESTServer) WebSocket(w http.ResponseWriter, r *http.Request, ps httpr
 		}
 
 		err = conn.WriteJSON(rm)
-		rs.l.Debugw("write error", "error", err)
+		if err != nil {
+			rs.l.Debugw("write error", "error", err)
+		}
 
 	}, stan.MaxInflight(1))
 
@@ -214,7 +247,7 @@ func (rs *RESTServer) WebSocket(w http.ResponseWriter, r *http.Request, ps httpr
 	}
 
 	// unsub
-	defer sc.Close()
+	defer sub.Close()
 
 	// handle a client disconnect
 	closeChan := make(chan struct{})
@@ -235,7 +268,7 @@ func (rs *RESTServer) WebSocket(w http.ResponseWriter, r *http.Request, ps httpr
 	// wait until the connection is closed or we are told to stop
 	select {
 	case <-closeChan:
-		rs.l.Debug("client disconnected closed")
+		rs.l.Debug("client disconnected, channel closed")
 	case <-rs.finish:
 		rs.l.Debug("that's a wrap")
 	}
@@ -258,6 +291,27 @@ func (rs *RESTServer) ServerStatus(w http.ResponseWriter, r *http.Request, ps ht
 	if len(body) != 0 {
 		w.Write(body)
 	}
+}
+
+func connectToStan(natsAddress, clusterID string, ctx *Context) (*stanConnection, error) {
+	natsConn, err := nats.Connect(natsAddress)
+	if err != nil {
+		return nil, err
+	}
+
+	clientID := fmt.Sprintf("%s-%s-%s", shortuuid.New(), "streamer", ctx.Version)
+
+	stanConn, err := stan.Connect(clusterID, clientID, stan.NatsConn(natsConn))
+	if err != nil {
+		natsConn.Close()
+		return nil, err
+	}
+
+	return &stanConnection{
+		natsConnection: natsConn,
+		stanConnection: stanConn,
+		stanClientID:   clientID,
+	}, nil
 }
 
 func setHeaders(w http.ResponseWriter, rh http.Header) {
