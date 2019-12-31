@@ -46,13 +46,26 @@ func main() {
 
 	errChan := make(chan error)
 
-	// start the rest server
-	rsport := os.Getenv("REST_PORT")
-	if rsport == "" {
-		rsport = "7786"
+	// start the grpc server
+	grpcPort := os.Getenv("GRPC_PORT")
+	if grpcPort == "" {
+		grpcPort = "7785"
 	}
 
-	rs := NewRestServer(rc, rsport, errChan, l, c)
+	gs, err := NewGRPCServer(rc, grpcPort, errChan, l)
+	if err != nil {
+		l.Infow("unable to start grpc server", "error", err.Error())
+		os.Exit(1)
+	}
+
+	// start the rest server
+	rsPort := os.Getenv("REST_PORT")
+	if rsPort == "" {
+		rsPort = "7786"
+	}
+
+	rs := NewRestServer(rc, rsPort, errChan, l, c)
+
 	l.Info("started")
 
 	// go until told to stop
@@ -67,6 +80,12 @@ func main() {
 
 	l.Info("shutting down")
 
-	rs.Stop()
+	gs.Stop()
+
+	err = rs.Stop()
+	if err != nil {
+		l.Infow("error shutting down rest server", "error", err.Error())
+	}
+
 	l.Info("finished")
 }

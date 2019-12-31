@@ -1,3 +1,30 @@
 syntax = "proto3";
 
 package streamergrpc;
+
+message Control {
+  Command command = 1;
+  map<string, string> options = 2;
+}
+
+enum Command {
+  START = 0;
+  STOP = 1;
+  FILTER_ADD = 2;
+  FILTER_REMOVE = 3;
+}
+
+message NatsMeta {
+  uint64 sequence = 1;
+  string timestamp = 2;
+}
+
+message Message {
+  NatsMeta natsMeta = 1;
+  string data = 2;
+}
+
+
+service Messages {
+  rpc Stream(stream Control) returns(stream Message) {};
+}

@@ -10,25 +10,14 @@ import (
 
 	"github.com/gogo/protobuf/proto"
 	"github.com/gorilla/websocket"
-	"github.com/jhump/protoreflect/desc/protoparse"
-	"github.com/jhump/protoreflect/dynamic/msgregistry"
 	"github.com/julienschmidt/httprouter"
-	"github.com/lithammer/shortuuid"
-	nats "github.com/nats-io/nats.go"
 	stan "github.com/nats-io/stan.go"
 	"github.com/noptics/golog"
-	"github.com/noptics/protofiles"
 	"github.com/noptics/streamer/registrygrpc"
+	"github.com/noptics/streamer/stanconnection"
 )
 
 const usage = `{"message":"path not found","usage":[{"description":"watch messages for a particular channel","path":"/:cluster/:channel","method":"GET","example":"GET /nats1/payoutRequests","response":{"cluster":"nats1","channel":"payoutRequests","files":[{"name":"request.proto","data":"<base64 encoded file data>"}]}}]}`
-
-// Wraps a connection to the stan cluster
-type stanConnection struct {
-	natsConnection *nats.Conn
-	stanConnection stan.Conn
-	stanClientID   string
-}
 
 // Wraps the routes and handlers
 type RESTServer struct {
@@ -98,7 +87,24 @@ func (rs *RESTServer) WebSocket(w http.ResponseWriter, r *http.Request, ps httpr
 
 	if len(natsAddress) == 0 && len(stanCluster) == 0 {
 		rs.l.Errorw("error invalid parameters provided", "natsAddress", natsAddress, "stanCluster", stanCluster)
+		setHeaders(w, r.Header)
+		w.WriteHeader(400)
+		w.Write([]byte(`{"message":"error","error":{"message": "invalid parameters provided", "details":"must provide natsAddress and stanClsuter"}}`))
 		return
+	}
+
+	start := r.URL.Query().Get("start")
+	var startDur time.Duration
+	var err error
+	if len(start) != 0 {
+		startDur, err = time.ParseDuration(start)
+		if err != nil {
+			rs.l.Errorw("error invalid duration provided", "start", start)
+			setHeaders(w, r.Header)
+			w.WriteHeader(400)
+			w.Write([]byte(`{"message":"error","error":{"message": "invalid duration string provided"}}`))
+			return
+		}
 	}
 
 	rs.l.Debugw("query params", "natsAddress", natsAddress, "stanCluster", stanCluster)
@@ -113,14 +119,14 @@ func (rs *RESTServer) WebSocket(w http.ResponseWriter, r *http.Request, ps httpr
 	rs.l.Infow("new websocket connection", "source", conn.RemoteAddr())
 
 	// attempt to get the schema from the registry
-	files, err := rs.rc.GetFiles(context.Background(),
-		&registrygrpc.GetFilesRequest{
+	data, err := rs.rc.GetChannelData(context.Background(),
+		&registrygrpc.GetChannelDataRequest{
 			Cluster: ps.ByName("cluster"),
 			Channel: ps.ByName("channel"),
 		})
 
 	if err != nil {
-		rs.l.Debugw("error getting schema files from registry", "error", err)
+		rs.l.Debugw("error getting schema from registry", "error", err)
 		conn.WriteJSON(&RESTMessage{
 			Error:   &RESTError{Message: "unable to get schema files from registry", Details: err.Error()},
 			Message: "error",
@@ -128,7 +134,7 @@ func (rs *RESTServer) WebSocket(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	if len(files.Files) == 0 {
+	if len(data.Files) == 0 {
 		rs.l.Debugw("no files in the registry", "cluster ", ps.ByName("cluster"), "channel", ps.ByName("channel"))
 		conn.WriteJSON(&RESTMessage{
 			Error:   &RESTError{Message: "no files in registry", Details: fmt.Sprintf("cluster: %s, channel: %s", ps.ByName("cluster"), ps.ByName("channel"))},
@@ -137,22 +143,7 @@ func (rs *RESTServer) WebSocket(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	msg, err := rs.rc.GetMessage(context.Background(),
-		&registrygrpc.GetMessageRequest{
-			Cluster: ps.ByName("cluster"),
-			Channel: ps.ByName("channel"),
-		})
-
-	if err != nil {
-		rs.l.Debugw("error getting channel message from registry", "error", err)
-		conn.WriteJSON(&RESTMessage{
-			Error:   &RESTError{Message: "unable to get channgel message from registry", Details: err.Error()},
-			Message: "error",
-		})
-		return
-	}
-
-	if len(msg.Name) == 0 {
+	if len(data.Message) == 0 {
 		rs.l.Debugw("no message type set for channel", "cluster ", ps.ByName("cluster"), "channel", ps.ByName("channel"))
 		conn.WriteJSON(&RESTMessage{
 			Error:   &RESTError{Message: "no message type set for channel", Details: fmt.Sprintf("cluster: %s, channel: %s", ps.ByName("cluster"), ps.ByName("channel"))},
@@ -161,35 +152,16 @@ func (rs *RESTServer) WebSocket(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	// build the dynamic registry
-	store := protofiles.NewStore()
-	names := []string{}
-	for _, f := range files.Files {
-		store.Add(f.Name, f.Data)
-		names = append(names, f.Name)
-	}
-
-	p := &protoparse.Parser{}
-	p.Accessor = store.GetReadCloser
-
-	ds, err := p.ParseFiles(names...)
+	registry, err := getProtoDynamicRegistry(data.Files, rs.l)
 	if err != nil {
-		rs.l.Debugw("error decoding file data from registry", "error", err)
-		conn.WriteJSON(&RESTMessage{Error: &RESTError{Message: "error decoding file data from registry", Details: err.Error()}})
+		conn.WriteJSON(&RESTMessage{
+			Error:   &RESTError{Message: "error resolving message type from registry", Details: err.Error()},
+			Message: "error",
+		})
 		return
 	}
 
-	registry := msgregistry.NewMessageRegistryWithDefaults()
-	for _, d := range ds {
-		rs.l.Debugw("adding file", "name", d.GetName())
-		registry.AddFile("noptics.io", d)
-		mts := d.GetMessageTypes()
-		for _, m := range mts {
-			fmt.Println(m.GetFullyQualifiedName())
-		}
-	}
-
-	msgPath := "noptics.io/" + msg.Name
+	msgPath := "noptics.io/" + data.Message
 
 	rs.l.Debugw("resolve", "path", msgPath)
 	_, err = registry.Resolve(msgPath)
@@ -202,7 +174,9 @@ func (rs *RESTServer) WebSocket(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	sc, err := connectToStan(natsAddress, stanCluster, rs.context)
+	sc := stanconnection.New(natsAddress, stanCluster)
+	err = sc.Connect()
+
 	if err != nil {
 		rs.l.Debugw("error connecting to stan cluster", "error", err)
 		conn.WriteJSON(&RESTMessage{
@@ -212,11 +186,17 @@ func (rs *RESTServer) WebSocket(w http.ResponseWriter, r *http.Request, ps httpr
 		return
 	}
 
-	defer sc.natsConnection.Close()
-	defer sc.stanConnection.Close()
+	defer sc.Close()
 
 	// setup the nats subscription
-	sub, err := sc.stanConnection.Subscribe(ps.ByName("channel"), func(m *stan.Msg) {
+	opts := []stan.SubscriptionOption{
+		stan.MaxInflight(1),
+	}
+	if len(start) != 0 {
+		opts = append(opts, stan.StartAtTimeDelta(startDur))
+	}
+
+	err = sc.Subscribe(ps.ByName("channel"), func(m *stan.Msg) {
 		rm := RESTMessage{NatsMeta: &NATSMeta{
 			Sequence:  m.MsgProto.Sequence,
 			Timestamp: time.Unix(0, m.Timestamp),
@@ -239,15 +219,12 @@ func (rs *RESTServer) WebSocket(w http.ResponseWriter, r *http.Request, ps httpr
 			rs.l.Debugw("write error", "error", err)
 		}
 
-	}, stan.MaxInflight(1))
+	}, opts)
 
 	if err != nil {
 		rs.l.Errorw("unable to setup stan subscription", "error", err)
 		return
 	}
-
-	// unsub
-	defer sub.Close()
 
 	// handle a client disconnect
 	closeChan := make(chan struct{})
@@ -293,27 +270,6 @@ func (rs *RESTServer) ServerStatus(w http.ResponseWriter, r *http.Request, ps ht
 	}
 }
 
-func connectToStan(natsAddress, clusterID string, ctx *Context) (*stanConnection, error) {
-	natsConn, err := nats.Connect(natsAddress)
-	if err != nil {
-		return nil, err
-	}
-
-	clientID := fmt.Sprintf("%s-%s-%s", shortuuid.New(), "streamer", ctx.Version)
-
-	stanConn, err := stan.Connect(clusterID, clientID, stan.NatsConn(natsConn))
-	if err != nil {
-		natsConn.Close()
-		return nil, err
-	}
-
-	return &stanConnection{
-		natsConnection: natsConn,
-		stanConnection: stanConn,
-		stanClientID:   clientID,
-	}, nil
-}
-
 func setHeaders(w http.ResponseWriter, rh http.Header) {
 	allowMethod := "GET, POST, PUT, DELETE, OPTIONS"
 	allowHeaders := "Content-Type"
@@ -350,7 +306,7 @@ func (rs *RESTServer) Router() *httprouter.Router {
 		w.WriteHeader(http.StatusNoContent)
 	})
 
-	r.GET("/:cluster/:channel", rs.WebSocket)
+	r.GET("/:cluster/:channel/stream", rs.WebSocket)
 	r.GET("/", rs.ServerStatus)
 
 	r.NotFound = http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
